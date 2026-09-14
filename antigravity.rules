@@ -1,0 +1,23 @@
+# SYSTEM RULES & CONTEXT: 0ITO TRADE FRAMEWORK
+# Target LLM: Gemini (Antigravity Context)
+
+# 0ito-supervisor Architecture & Engineering Rules
+
+## 1. Core Mandate & Concurrency
+- The supervisor is a host-level singleton daemon. It MUST maintain an ultra-low memory footprint (< 30MB RSS) and zero external runtime dependencies (compiled as a static binary in Go or Rust).
+- It MUST supervise child processes without adopting zombie states by properly handling POSIX signal propagation (`SIGTERM`, `SIGINT`, `SIGHUP`, `SIGCHLD`).
+
+## 2. Watchdog & Recovery Policy
+- **Heartbeat Contract:** Any managed process (MT5 Wine instances, JVM engines, Python workers) must emit an active heartbeat via local IPC socket or mtime updates to `/var/run/0itotrade/<service>.sock` or lockfiles.
+- **Fail-Safe Loops:** Exponential backoff with jitter MUST be enforced on restarts (e.g., 2s, 4s, 8s, up to 60s max) with a circuit breaker tripping after 5 consecutive rapid crashes.
+- **Wine Hygiene:** When killing frozen MetaTrader instances, the watchdog MUST clean up orphaned Wine processes (`wineserver -k`, cleanup of stale wineserver lock sockets and `/tmp/.wine-*`).
+
+## 3. Dependency & Health Engine
+- **Probing Segregation:** Health probes are divided into:
+  - *Liveness:* Is process alive and responsive to OS signals?
+  - *Readiness:* Are critical dependencies reachable (MySQL ping < 2000ms, Xvfb active on assigned `:display`, local disk `/opt/0itotrade` free space > 10%)?
+- Failures in non-critical dependencies MUST degrade node status without terminating independent workers.
+
+## 4. Security & Isolation
+- The daemon MUST run as unprivileged user `0itotrade` and enforce Linux capabilities (`CAP_NET_BIND_SERVICE` only if binding low ports).
+- Inter-process management and remote status endpoints MUST enforce TLS 1.3 with pre-shared bearer token authorization. Binding default to loopback (`127.0.0.1`) unless explicitly configured.

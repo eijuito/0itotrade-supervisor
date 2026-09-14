@@ -1,0 +1,35 @@
+# ==============================================================================
+# 0ITOTRADE-SUPERVISOR: Configuração Padrão
+# Local de instalação recomendado no Linux: /etc/0itotrade/supervisor.yaml
+# ==============================================================================
+
+# Nome da Instância:
+# "auto" utiliza automaticamente o hostname do Sistema Operacional (ex: ubuntu-oci-vps)
+# Ou informe um nome customizado (ex: "vps-oracle-free-tier-01")
+instance_name: "auto"
+
+# Servidor Local de Telemetria e Healthcheck
+server:
+  host: "127.0.0.1"
+  port: 9100
+  auth_token: "" # Opcional: token Bearer para proteger o endpoint /health
+
+# Monitoramento e Watchdog do MySQL (Mesma Subnet / Rede Local)
+mysql:
+  enabled: true
+  host: "10.0.0.5"        # IP interno do MySQL na subnet
+  port: 3306
+  user: "0itotrade"
+  password: "SEU_PASSWORD_MYSQL"
+  database: "0itotrade"
+  check_interval: 10s     # Intervalo entre sondas de verificação
+  timeout: 2000ms         # Timeout máximo para resposta da conexão/ping
+  max_latency_ms: 2000    # Latência máxima aceitável antes de marcar status DEGRADED
+
+# Notificações e Relatórios via Telegram Bot
+telegram:
+  enabled: false          # Altere para true para habilitar
+  bot_token: "SEU_TELEGRAM_BOT_TOKEN"
+  chat_id: "SEU_TELEGRAM_CHAT_ID"
+  daily_report_time: "08:00" # Horário de envio diário no formato HH:MM (ex: "08:00")
+  alert_on_failure: true     # Dispara alerta imediato se o MySQL cair ou se recuperar
