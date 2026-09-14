@@ -87,20 +87,38 @@ if [ "${DOWNLOAD_SUCCESS}" = false ]; then
   fi
 fi
 
-# Fallback 2: compilação local caso go esteja instalado e estejamos em um clone do repositório
+# Fallback 2: Se não houver binário nas Releases, clona o código e compila automaticamente
 if [ "${DOWNLOAD_SUCCESS}" = false ]; then
-  echo "⚠️  Não foi possível baixar o binário das Releases (podem não ter sido publicadas ainda)."
-  if command -v go >/dev/null 2>&1 && [ -f "go.mod" ]; then
-    echo "🔨 Compilando binário localmente a partir do código fonte..."
+  echo "⚠️  Binário pré-compilado não encontrado nas Releases do GitHub."
+  echo "📦 Iniciando modo de compilação sob demanda no Ubuntu..."
+  
+  # Instala git e golang se não estiverem presentes
+  if ! command -v git >/dev/null 2>&1 || ! command -v go >/dev/null 2>&1; then
+    echo "⚙️  Instalando pré-requisitos de compilação (git, golang-go)..."
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -y
+    apt-get install -y git golang-go
+  fi
+
+  CLONE_DIR="${TMP_DIR}/repo"
+  echo "📥 Clonando código fonte de https://github.com/${GITHUB_REPO}.git..."
+  git clone --depth 1 "https://github.com/${GITHUB_REPO}.git" "${CLONE_DIR}"
+
+  echo "🔨 Compilando binário estático para linux-${ARCH}..."
+  (
+    cd "${CLONE_DIR}"
     CGO_ENABLED=0 go build -ldflags="-s -w" -o "${BIN_PATH}" ./cmd/supervisor
+  )
+
+  if [ -f "${BIN_PATH}" ]; then
     chmod +x "${BIN_PATH}"
     DOWNLOAD_SUCCESS=true
+    echo "✅ Binário compilado e instalado com sucesso em ${BIN_PATH}!"
   fi
 fi
 
 if [ "${DOWNLOAD_SUCCESS}" = false ]; then
-  echo "❌ Falha ao obter o binário do 0itotrade-supervisor."
-  echo "Certifique-se de que a release no repositório ${GITHUB_REPO} contenha '0itotrade-supervisor-linux-${ARCH}'."
+  echo "❌ Falha ao obter ou compilar o 0itotrade-supervisor."
   exit 1
 fi
 
