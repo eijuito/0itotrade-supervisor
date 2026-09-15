@@ -107,6 +107,8 @@ if [ "${DOWNLOAD_SUCCESS}" = false ]; then
   echo "🔨 Compilando binário estático para linux-${ARCH}..."
   (
     cd "${CLONE_DIR}"
+    rm -f go.sum
+    go mod tidy
     CGO_ENABLED=0 go build -ldflags="-s -w" -o "${BIN_PATH}" ./cmd/supervisor
   )
 
