@@ -19,7 +19,7 @@ type Config struct {
 type ServerConfig struct {
 	Host      string `yaml:"host"`
 	Port      int    `yaml:"port"`
-	AuthToken string `yaml:"auth_token"`
+	AuthToken string `yaml:"auth_token"` // Personal Access Token (PAT) estilo GitHub
 }
 
 type MySQLConfig struct {

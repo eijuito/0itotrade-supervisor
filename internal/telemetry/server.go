@@ -73,16 +73,44 @@ func (s *Server) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	// If auth token is configured, enforce bearer token
-	if s.cfg.AuthToken != "" {
-		auth := r.Header.Get("Authorization")
-		expected := "Bearer " + s.cfg.AuthToken
-		if auth != expected {
-			w.WriteHeader(http.StatusUnauthorized)
-			_, _ = w.Write([]byte(`{"error":"unauthorized"}`))
-			return
+func (s *Server) checkAuth(r *http.Request) bool {
+	if s.cfg.AuthToken == "" {
+		return true
+	}
+
+	// 1. Header: Authorization: Bearer <token> ou Authorization: token <token> (GitHub style)
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		if token == s.cfg.AuthToken {
+			return true
 		}
+	} else if strings.HasPrefix(authHeader, "token ") {
+		token := strings.TrimPrefix(authHeader, "token ")
+		if token == s.cfg.AuthToken {
+			return true
+		}
+	}
+
+	// 2. Query param: ?token=<token>
+	if r.URL.Query().Get("token") == s.cfg.AuthToken {
+		return true
+	}
+
+	// 3. Header: X-API-Key
+	if r.Header.Get("X-API-Key") == s.cfg.AuthToken {
+		return true
+	}
+
+	return false
+}
+
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	if !s.checkAuth(r) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":"unauthorized","message":"Personal Access Token inválido ou ausente. Forneça o header 'Authorization: Bearer <token>' ou o parâmetro '?token='."}`))
+		return
 	}
 
 	overallStatus, results, uptime := s.wd.GetSnapshot()
@@ -141,6 +169,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
     .container { max-width: 900px; margin: 0 auto; }
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--card-border); padding-bottom: 1rem; }
     .brand { font-size: 1.4rem; font-weight: 700; color: #60a5fa; display: flex; align-items: center; gap: 0.5rem; }
+    .header-actions { display: flex; align-items: center; gap: 0.75rem; }
     .badge { padding: 0.35rem 0.85rem; border-radius: 9999px; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
     .badge-HEALTHY { background: rgba(16, 185, 129, 0.15); color: var(--green); border: 1px solid var(--green); }
     .badge-DEGRADED { background: rgba(245, 158, 11, 0.15); color: var(--yellow); border: 1px solid var(--yellow); }
@@ -159,15 +188,42 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
     .footer { text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 2rem; }
     .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: blink 1.5s infinite; }
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    
+    /* Token Auth Modal (GitHub Style) */
+    .auth-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .auth-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 0.75rem; padding: 2rem; width: 100%; max-width: 440px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+    .auth-box h2 { font-size: 1.25rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    .auth-box p { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.4; }
+    .auth-input { width: 100%; padding: 0.75rem 1rem; background: #030712; border: 1px solid #374151; border-radius: 0.5rem; color: #fff; font-size: 0.95rem; margin-bottom: 1rem; outline: none; font-family: monospace; }
+    .auth-input:focus { border-color: var(--accent); ring: 2px var(--accent); }
+    .auth-btn { width: 100%; padding: 0.75rem; background: #2563eb; color: #fff; border: none; border-radius: 0.5rem; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .auth-btn:hover { background: #1d4ed8; }
+    .auth-error { color: var(--red); font-size: 0.85rem; margin-top: 0.75rem; display: none; }
+    .btn-logout { background: transparent; border: 1px solid var(--card-border); color: var(--text-muted); padding: 0.35rem 0.75rem; border-radius: 0.375rem; font-size: 0.8rem; cursor: pointer; }
+    .btn-logout:hover { color: #fff; border-color: #4b5563; }
   </style>
 </head>
 <body>
-  <div class="container">
+  <!-- Modal de Autenticação com Token -->
+  <div id="auth-modal" class="auth-overlay" style="display: none;">
+    <div class="auth-box">
+      <h2>🔑 Autenticação Requerida</h2>
+      <p>Este servidor está protegido. Forneça o <strong>Personal Access Token (PAT)</strong> configurado no supervisor para liberar o acesso:</p>
+      <input type="password" id="token-input" class="auth-input" placeholder="0ito_pat_..." autocomplete="off" />
+      <button id="token-submit" class="auth-btn">Autorizar Acesso</button>
+      <div id="token-error" class="auth-error">Token inválido ou não autorizado.</div>
+    </div>
+  </div>
+
+  <div class="container" id="dashboard-content">
     <header>
       <div class="brand">
         <span>🛡️ 0itotrade-supervisor</span>
       </div>
-      <div id="status-badge" class="badge badge-HEALTHY"><span class="pulse"></span>Carregando...</div>
+      <div class="header-actions">
+        <button id="btn-signout" class="btn-logout" style="display: none;" onclick="signout()">Sair</button>
+        <div id="status-badge" class="badge badge-HEALTHY"><span class="pulse"></span>Conectando...</div>
+      </div>
     </header>
 
     <div class="grid">
@@ -199,10 +255,79 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
   </div>
 
   <script>
+    const STORAGE_KEY = '0ito_supervisor_pat';
+
+    // Captura token vindo na URL (?token=...) se existir
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('token')) {
+      localStorage.setItem(STORAGE_KEY, urlParams.get('token'));
+      // Limpa a URL para não deixar o token visível no histórico
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    function getToken() {
+      return localStorage.getItem(STORAGE_KEY) || '';
+    }
+
+    function signout() {
+      localStorage.removeItem(STORAGE_KEY);
+      location.reload();
+    }
+
+    function showAuthModal(errMsg) {
+      const modal = document.getElementById('auth-modal');
+      modal.style.display = 'flex';
+      if (errMsg) {
+        const errDiv = document.getElementById('token-error');
+        errDiv.innerText = errMsg;
+        errDiv.style.display = 'block';
+      }
+      document.getElementById('token-input').focus();
+    }
+
+    function hideAuthModal() {
+      document.getElementById('auth-modal').style.display = 'none';
+      document.getElementById('token-error').style.display = 'none';
+      document.getElementById('btn-signout').style.display = 'inline-block';
+    }
+
+    document.getElementById('token-submit').addEventListener('click', async () => {
+      const tokenVal = document.getElementById('token-input').value.trim();
+      if (!tokenVal) return;
+
+      localStorage.setItem(STORAGE_KEY, tokenVal);
+      const ok = await updateDashboard();
+      if (!ok) {
+        showAuthModal('Token inválido. Verifique o valor configurado no supervisor.yaml.');
+        localStorage.removeItem(STORAGE_KEY);
+      } else {
+        hideAuthModal();
+      }
+    });
+
+    document.getElementById('token-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('token-submit').click();
+      }
+    });
+
     async function updateDashboard() {
+      const token = getToken();
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = 'Bearer ' + token;
+      }
+
       try {
-        const res = await fetch('/health');
+        const res = await fetch('/health', { headers });
+
+        if (res.status === 401) {
+          showAuthModal();
+          return false;
+        }
+
         const data = await res.json();
+        hideAuthModal();
 
         // Status badge
         const badge = document.getElementById('status-badge');
@@ -237,8 +362,10 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
             '</div>';
           probesDiv.appendChild(item);
         }
+        return true;
       } catch (err) {
         console.error('Falha ao atualizar telemetria:', err);
+        return false;
       }
     }
 

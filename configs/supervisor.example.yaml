@@ -8,11 +8,11 @@
 # Ou informe um nome customizado (ex: "vps-oracle-free-tier-01")
 instance_name: "auto"
 
-# Servidor Local de Telemetria e Healthcheck
+# Servidor de Telemetria e Dashboard
 server:
-  host: "127.0.0.1"
+  host: "127.0.0.1" # Mude para "0.0.0.0" se desejar acessar pelo IP público
   port: 9100
-  auth_token: "" # Opcional: token Bearer para proteger o endpoint /health
+  auth_token: "0ito_pat_seu_token_secreto_aqui" # Personal Access Token estilo GitHub para acesso seguro ao Dashboard e API
 
 # Monitoramento e Watchdog do MySQL (Mesma Subnet / Rede Local)
 mysql:
