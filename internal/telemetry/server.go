@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/eijuito/0itotrade-supervisor/internal/config"
