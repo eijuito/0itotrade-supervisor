@@ -82,6 +82,8 @@ func LoadConfig(customPath string) (*Config, error) {
 		if _, err := os.Stat(p); err == nil {
 			loadedPath = p
 			break
+		} else if os.IsPermission(err) {
+			return nil, fmt.Errorf("permissão negada para ler o arquivo de configuração '%s'. Execute o comando com 'sudo' (ex: sudo 0itotrade-supervisor %s)", p, strings.Join(os.Args[1:], " "))
 		}
 	}
 

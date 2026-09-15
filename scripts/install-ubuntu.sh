@@ -162,8 +162,8 @@ fi
 
 # 7. Ajusta permissões
 chown -R "${APP_USER}:${APP_GROUP}" "${INSTALL_DIR}" "${CONFIG_DIR}" "${LOG_DIR}"
-chmod 750 "${CONFIG_DIR}"
-chmod 640 "${CONFIG_FILE}"
+chmod 755 "${CONFIG_DIR}"
+chmod 644 "${CONFIG_FILE}"
 
 # 8. Cria unidade de serviço Systemd
 echo "📄 Gerando serviço systemd em ${SYSTEMD_SERVICE}..."
