@@ -11,8 +11,18 @@ O script instalador oficial detecta a arquitetura do processador (`x86_64` ou `a
 Execute no terminal do seu VPS Ubuntu:
 
 ```bash
+# Instalação padrão (modo client/agente):
 curl -sSL https://raw.githubusercontent.com/eijuito/0itotrade-supervisor/main/scripts/install-ubuntu.sh | sudo bash
+
+# Instalação como Servidor Central / Hub:
+curl -sSL https://raw.githubusercontent.com/eijuito/0itotrade-supervisor/main/scripts/install-ubuntu.sh | sudo bash -s -- --server
+
+# Forçar/reconfigurar como Cliente:
+curl -sSL https://raw.githubusercontent.com/eijuito/0itotrade-supervisor/main/scripts/install-ubuntu.sh | sudo bash -s -- --client
 ```
+
+> [!TIP]
+> **Atualização Automática**: Ao reexecutar o script em uma máquina onde o supervisor já está instalado, o instalador detecta a versão local contra o GitHub Releases e solicita confirmação para atualizar o binário e reiniciar o serviço systemd de forma transparente sem sobrescrever seu arquivo de configuração existente.
 
 ---
 

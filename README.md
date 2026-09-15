@@ -47,9 +47,14 @@ A documentação detalhada está organizada na pasta [`docs/`](./docs/):
 O instalador automatizado detecta a arquitetura (`amd64` ou `arm64`), baixa a release mais recente do GitHub, cria o usuário do sistema `0itotrade`, configura as permissões e ativa o serviço no **systemd**:
 
 ```bash
-# Executar o instalador via curl
+# Executar o instalador padrão (modo client/agente):
 curl -sSL https://raw.githubusercontent.com/eijuito/0itotrade-supervisor/main/scripts/install-ubuntu.sh | sudo bash
+
+# Para instalar/configurar explicitamente no modo Servidor (Hub):
+curl -sSL https://raw.githubusercontent.com/eijuito/0itotrade-supervisor/main/scripts/install-ubuntu.sh | sudo bash -s -- --server
 ```
+
+> **Nota de Atualização**: Se o supervisor já estiver instalado, reexecutar o comando verifica a versão mais recente nas Releases do GitHub e permite atualizar o binário com reinicialização automática do daemon.
 
 Para instruções detalhadas ou instalação manual, consulte o guia de **[Instruções de Instalação](./docs/install-instructions.md)**.
 
