@@ -56,6 +56,21 @@ curl -sSL https://raw.githubusercontent.com/eijuito/0itotrade-supervisor/main/sc
 
 > **Nota de Atualização**: Se o supervisor já estiver instalado, reexecutar o comando verifica a versão mais recente nas Releases do GitHub e permite atualizar o binário com reinicialização automática do daemon.
 
+---
+
+## 3. Instalação no Windows (PowerShell)
+
+Para instalar no Windows como Tarefa Agendada contínua (`SYSTEM`) e com CLI registrado no PATH do sistema:
+
+Abra o **PowerShell como Administrador**:
+```powershell
+# Executar instalador padrão (modo client/agente):
+irm https://raw.githubusercontent.com/eijuito/0itotrade-supervisor/main/scripts/install-windows.ps1 | iex
+
+# Para instalar/configurar explicitamente no modo Servidor (Hub):
+powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/eijuito/0itotrade-supervisor/main/scripts/install-windows.ps1 | iex" -Server
+```
+
 Para instruções detalhadas ou instalação manual, consulte o guia de **[Instruções de Instalação](./docs/install-instructions.md)**.
 
 ### Configuração Pós-Instalação:

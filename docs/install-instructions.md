@@ -26,6 +26,25 @@ curl -sSL https://raw.githubusercontent.com/eijuito/0itotrade-supervisor/main/sc
 
 ---
 
+## 2. Instalação Automatizada no Windows (PowerShell)
+
+Para instalar ou atualizar em estações de trabalho ou servidores **Windows** com registro no PATH e execução contínua no Agendador de Tarefas:
+
+Abra o **PowerShell como Administrador** e execute:
+
+```powershell
+# Instalação padrão (modo client/agente):
+irm https://raw.githubusercontent.com/eijuito/0itotrade-supervisor/main/scripts/install-windows.ps1 | iex
+
+# Instalação como Servidor Central / Hub:
+powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/eijuito/0itotrade-supervisor/main/scripts/install-windows.ps1 | iex" -Server
+
+# Executando a partir do repositório local clonado:
+powershell -ExecutionPolicy Bypass -File .\scripts\install-windows.ps1 -Server
+```
+
+---
+
 ## 2. Instalação Manual Passo a Passo
 
 Caso prefira executar cada etapa manualmente:

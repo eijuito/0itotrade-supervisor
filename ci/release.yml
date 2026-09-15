@@ -36,5 +36,9 @@ jobs:
             dist/0itotrade-supervisor-linux-arm64.tar.gz
             dist/0itotrade-supervisor-linux-amd64
             dist/0itotrade-supervisor-linux-arm64
+            dist/0itotrade-supervisor-windows-amd64.tar.gz
+            dist/0itotrade-supervisor-windows-arm64.tar.gz
+            dist/0itotrade-supervisor-windows-amd64.exe
+            dist/0itotrade-supervisor-windows-arm64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
